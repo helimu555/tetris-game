@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="screen-orientation" content="portrait">
+    <title>俄罗斯方块 | 在线小游戏</title>
+    <meta name="description" content="经典俄罗斯方块在线玩，支持深浅主题、氛围灯、加速减速、触屏操作，手机电脑通用。">
+    <meta name="keywords" content="俄罗斯方块,在线游戏,小游戏,竖屏俄罗斯方块,经典游戏">
+    <meta name="author" content="在线小游戏">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft Yahei", sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+        body {
+            min-height: 100vh;
+            background-color: #12141d;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px;
+            position: relative;
+        }
+
+        /* 氛围灯 */
+        .light-bar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg,#4cc9f0,#72efdd,#f72585,#9381ff,#4cc9f0);
+            background-size: 100% 400%;
+            animation: flowLight 6s linear infinite;
+            z-index: 1;
+        }
+        .light-left { left: 0; }
+        .light-right { right: 0; }
+        @keyframes flowLight {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 400%; }
+        }
+
+        /* 网站头部 */
+        .site-header {
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+            padding: 10px 0;
+        }
+        .site-title {
+            font-size: 22px;
+            color: #72efdd;
+            font-weight: bold;
+        }
+        body.light-mode .site-title {
+            color: #4361ee;
+        }
+
+        /* 主题切换 */
+        .theme-toggle {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 999;
+            padding: 5px 12px;
+            border-radius: 50px;
+            border: none;
+            background: #4361ee;
+            color: #fff;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        body.light-mode .theme-toggle {
+            background: #555;
+        }
+
+        /* 游戏区域 */
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding-bottom: 10px;
+        }
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 20px);
+            grid-template-rows: repeat(20, 20px);
+            gap: 1px;
+            background-color: #1e2030;
+            border: 2px solid #4cc9f0;
+        }
+        body.light-mode .game-grid {
+            background-color: #e2e8f0;
+            border-color: #4361ee;
+        }
+        .cell {
+            width: 20px;
+            height: 20px;
+            background-color: #2a2c3f;
+        }
+        body.light-mode .cell {
+            background-color: #d8e0ed;
+        }
+        .cell-light { opacity: 0.8; }
+        .cell-dark { opacity: 1; }
+
+        /* 信息面板 */
+        .info {
+            width: 100%;
+            max-width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: center;
+        }
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            padding: 0 4px;
+        }
+        .next-box {
+            display: grid;
+            grid-template-columns: repeat(4, 20px);
+            grid-template-rows: repeat(4, 20px);
+            gap: 1px;
+            background-color: #1e2030;
+            border: 2px solid #72efdd;
+            margin: 0 auto;
+        }
+        body.light-mode .next-box {
+            background-color: #e2e8f0;
+            border-color: #4361ee;
+        }
+
+        /* 按钮 */
+        .ctrl-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 6px 0;
+        }
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+        }
+        button {
+            padding: 8px 4px;
+            border: none;
+            border-radius: 6px;
+            background-color: #4361ee;
+            color: #fff;
+            font-size: 12px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        button:active { opacity: 0.8; }
+        body.light-mode button {
+            background-color: #3352cc;
+        }
+
+        /* 浅色模式 */
+        body.light-mode {
+            background-color: #f0f4f8;
+            color: #222;
+        }
+
+        /* 网站页脚 */
+        footer {
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+            font-size: 11px;
+            color: #888;
+            padding: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 氛围灯 -->
+    <div class="light-bar light-left"></div>
+    <div class="light-bar light-right"></div>
+
+    <!-- 主题切换 -->
+    <button class="theme-toggle" id="themeBtn">浅色模式</button>
+
+    <!-- 网站头部 -->
+    <div class="site-header">
+        <h1 class="site-title">俄罗斯方块</h1>
+    </div>
+
+    <!-- 游戏主内容 -->
+    <div class="game-container">
+        <div class="game-grid" id="gameGrid"></div>
+
+        <div class="info">
+            <div class="score-row">
+                <div>分数：<span id="score">0</span></div>
+                <div>速度：<span id="speed">中等</span></div>
+            </div>
+            <div style="font-size:12px;">下一个</div>
+            <div class="next-box" id="nextGrid"></div>
+
+            <div class="ctrl-group">
+                <button id="leftBtn" style="width:60px;">←</button>
+                <button id="rotateBtn" style="width:60px;">旋转</button>
+                <button id="rightBtn" style="width:60px;">→</button>
+            </div>
+
+            <div class="btn-grid">
+                <button id="startBtn">开始</button>
+                <button id="pauseBtn">暂停</button>
+                <button id="downBtn">下落</button>
+                <button id="speedDown">减速</button>
+                <button id="speedUp">加速</button>
+                <button id="resetBtn">重置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 网站页脚 -->
+    <footer>
+        © 2025 俄罗斯方块在线小游戏 | 纯前端网页版
+    </footer>
+
+<script>
+const ROW = 20;
+const COL = 10;
+let gameGrid = document.getElementById('gameGrid');
+let nextGrid = document.getElementById('nextGrid');
+let scoreDom = document.getElementById('score');
+let speedDom = document.getElementById('speed');
+let themeBtn = document.getElementById('themeBtn');
+
+let map = [];
+let score = 0;
+let speed = 800;
+let timer = null;
+let isPause = false;
+let currentBlock = null;
+let nextBlock = null;
+
+// 主题切换
+themeBtn.onclick = () => {
+    document.body.classList.toggle('light-mode');
+    themeBtn.innerText = document.body.classList.contains('light-mode') ? '深色模式' : '浅色模式';
+};
+
+const blockType = [
+    { shape: [[1,1,1,1]], color: ['#4cc9f0','#0077b6'] },
+    { shape: [[1,1],[1,1]], color: ['#f72585','#b5179e'] },
+    { shape: [[1,1,1],[0,1,0]], color: ['#72efdd','#06d6a0'] },
+    { shape: [[1,1,1],[1,0,0]], color: ['#ffd166','#e07a5f'] },
+    { shape: [[1,1,1],[0,0,1]], color: ['#9381ff','#5e60ce'] },
+    { shape: [[1,1,0],[0,1,1]], color: ['#f8961e','#e63946'] },
+    { shape: [[0,1,1],[1,1,0]], color: ['#00bbf9','#3a0ca3'] }
+];
+
+function initGrid() {
+    gameGrid.innerHTML = '';
+    nextGrid.innerHTML = '';
+    map = Array(ROW).fill().map(()=>Array(COL).fill(0));
+    for(let i=0;i<ROW;i++){
+        for(let j=0;j<COL;j++){
+            let cell = document.createElement('div');
+            cell.className = 'cell';
+            gameGrid.appendChild(cell);
+        }
+    }
+    for(let i=0;i<4;i++){
+        for(let j=0;j<4;j++){
+            let cell = document.createElement('div');
+            cell.className = 'cell';
+            nextGrid.appendChild(cell);
+        }
+    }
+}
+
+function createBlock(){
+    let idx = Math.floor(Math.random()*blockType.length);
+    return {
+        shape:blockType[idx].shape,
+        color:blockType[idx].color,
+        x: Math.floor((COL - blockType[idx].shape[0].length) / 2),
+        y: 0
+    }
+}
+
+function render(){
+    let cells = document.querySelectorAll('.game-grid .cell');
+    cells.forEach(item=>{
+        item.style.backgroundColor = '';
+        item.className = 'cell';
+    });
+    for(let i=0;i<ROW;i++){
+        for(let j=0;j<COL;j++){
+            if(map[i][j]){
+单元格[i*COL+j].style.backgroundColor=map[i][j]；
+cells[i*COL+j].classList.add('cell-dark')；
+            }
+        }
+    }
+if(！currentBlock)返回；
+currentBlock.shape.forEach((row，y)=>{
+row.forEach((val，x)=>{
+if(val){
+设NY=currentBlock.y+y；
+设NX=currentBlock.x+x；
+if(ny>=0&&ny<ROW&&nx>=0&&nx<COL){
+设idx=ny*COL+nx；
+单元格[idx].style.backgroundColor=currentBlock.color[x%2]；
+cells[idx].classList.add(x%2？'cell-dark'：'cell-light')；
+                }
+            }
+        })
+    })
+}
+
+函数renderNext(){
+让nextCells=document.querySelectorAll('.next-box.cell')；
+nextCells.forEach(项目=>{
+item.style.backgroundColor="；
+item.className='单元格'；
+    });
+if(！nextBlock)返回；
+nextBlock.shape.forEach((row，y)=>{
+row.forEach((val，x)=>{
+if(val){
+设idx=y*4+x；
+nextCells[idx].style.backgroundColor=nextBlock.color[x%2]；
+nextCells[idx]。classList.添加(x%2？'cell-dark'：'cell-light')；
+            }
+        })
+    })
+}
+
+函数CheckMove(blk，ox=0，oy=0){
+for(让y=0；y<blk.shape.length；y++){
+for(让x=0；x<blk.shape[y].length；x++){
+if(blk.shape[y][x]){
+设NX=blk.x+x+ox；
+设NY=blk.y+y+oy；
+if(nx<0||nx>=COL||ny>=ROW)返回false；
+if(ny>=0&&map[ny][nx])返回false；
+            }
+        }
+    }
+返回true；
+}
+
+函数fixBlock(){
+currentBlock.shape.forEach((row，y)=>{
+row.forEach((val，x)=>{
+if(val){
+设NY=currentBlock.y+y；
+设NX=currentBlock.x+x；
+如果(ny>=0&&ny<ROW&&nx>=0&&nx<COL)映射[ny][nx]=当前块。颜色[x%2]；
+            }
+        })
+    })
+ClearLine()；
+currentBlock=nextBlock；
+nextBlock=createBlock()；
+renderNext()；
+if(！CheckMove(currentBlock)){
+alert('游戏结束！分数：${score}')；
+clearInterval(计时器)；
+计时器=空；
+isPause=true；
+    }
+}
+
+函数ClearLine(){
+让line=0；
+for(设i=row-1；i>=0；i--){
+if(map[i].every(v=>v)){
+map.splice(i，1)；
+map.unshift(Array(COL).fill(0))；
+line++；i++；
+        }
+    }
+if(line){score+=line*100；scoreDom.内文=分数；}
+}
+
+函数rotateBlock(){
+if(isPause||！currentBlock)返回；
+设s=currentBlock.shape；
+让新闻=[]；
+for(让i=0；i<s[0].length；i++){
+设r=[]；
+对于(设j=s.length-1；j>=0；j-)r.push(s[j][i])；
+newS.push(r)；
+    }
+let old=JSON.parse(JSON.stringify(s))；
+currentBlock.shape=news；
+如果(！CheckMove(currentBlock))currentBlock。形状=旧；
+提供()；
+}
+
+功能自动下降(){
+CheckMove(currentBlock，0，1)？currentBlock.y++：fixBlock()；
+提供()；
+}
+
+函数MoveLeft(){if(isPause||！currentBlock)返回；if(CheckMove(currentBlock，-1，0))currentBlock.x--；render()；}
+函数Overight(){if(isPause||！currentBlock)返回；if(CheckMove(currentBlock，1，0))currentBlock.X++；render()；}
+函数moveDownFast(){if(isPause||！currentBlock)return；Autodown()；}
+
+函数StartGame(){
+if(定时器)clearInterval(定时器)；
+评分=0；速度=800；isPause=false；
+scoreDom.innerText=0；
+updateSpeedText()；
+initGrid()；
+currentBlock=createBlock()；
+nextBlock=createBlock()；
+renderNext()；render()；
+定时器=setInterval(自动下降，速度)；
+}
+
+函数pauseGame(){
+if(！currentBlock)返回；
+isPause=！isPause；
+isPause？clearInterval(定时器)：定时器=setInterval(自动下降，速度)；
+}
+
+函数加速(){
+if(isPause||！timer)返回；
+if(速度>220){speed-=150；updateSpeedText()；clearInterval(计时器)；timer=setInterval(自动下降，速度)；}
+}
+函数减速(){
+if(isPause||！timer)返回；
+if(速度<1600){速度+=150；updateSpeedText()；clearInterval(计时器)；timer=setInterval(自动下降，速度)；}
+}
+函数updateSpeedText(){
+speedDom.innerText=速度<400？'快速'：速度<900？'中等'：'慢速'；
+}
+
+document.addEventListener('keydown'，e=>{
+if(isPause||！currentBlock)返回；
+开关(e.key){
+大小写'左箭头'：MoveLeft()；断开；
+大小写'箭头右'：Moveright()；断开；
+大小写'arrowDown'：moveDownFast()；打断；
+    }
+})
+
+文件。getElementById('leftBtn').onclick=MoveLeft；
+文件。getElementById('rightBtn').onclick=Moveright；
+文件。getElementById('rotateBtn').onClick=rotateBlock；
+文件。getElementById('downBtn').onClick=moveDownFast；
+文件。getElementById('startBtn').onclick=StartGame；
+文件。getElementById('pauseBtn').onclick=pauseGame；
+文件。getElementById('speedUp').onclick=speedUp；
+文件。getElementById('speedDown')。onClick=speedDown；
+文件。getElementById('resetBtn')。onClick=()=>{clearInterval(timer)；timer=null；StartGame()；}；
+
+initGrid()；
+</script>
+</body>
+</html>
